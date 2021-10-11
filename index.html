@@ -17,9 +17,21 @@
           <div class="spacer"></div>
       
           <div class="form-group">
-            <label for="fullname" class="form-label">Tên đầy đủ</label>
-            <input id="fullname" name="fullname" rules="required" type="text" placeholder="VD: Sơn Đặng" class="form-control">
-            <span class="form-message"></span>
+            <!-- Cho input nằm trong nhiều cấp con như vậy để cho biết là hàm getParent() ở file JS của ta vẫn lấy dc thẻ cha có class 'form-group' mặt dù thẻ input nằm trong nhiều cấp con như vậy -->
+            <div class="cap-1">
+              <div class="cap-2">
+                <div class="cap-3">
+                  <label for="fullname" class="form-label">Tên đầy đủ</label>
+                  <input id="fullname" name="fullname" rules="required" type="text" placeholder="VD: Sơn Đặng" class="form-control">
+                </div>
+              </div>
+            </div>
+            <!-- Cho dù thẻ span nằm trong nhiều cấp thì từ thẻ cha có class 'form-group' vẫn select dc tới thẻ span chứa thông báo lỗi -->
+            <div class="span-cap-1">
+              <div class="span-cap-2">
+                <span class="form-message"></span>
+              </div>
+            </div>
           </div>
       
           <div class="form-group">
