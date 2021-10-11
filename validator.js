@@ -225,7 +225,7 @@ function Validator(formSelector) {
         // Nhấn submit nó sẽ in ra this bên ngoài (this là hàm Validator) có func onSubmit
         // console.log(_this);
 
-        
+
         var inputs = formElement.querySelectorAll('[name][rules]');
         // 'isValid' là form hợp lệ, mặc định lần đầu 'true' (user chưa nhập hay làm gì form hết)
         var isValid = true;
