@@ -1,9 +1,17 @@
-'use strict'
+// 'use strict'
 
 // formSelector là cái form mà ta truyền vào để validate (như ở file html ta truyền id của form)
+// 'options' là tham số thứ 2 truyền vào của hàm Validator, và gán giá trị mặc định cho options là 1 Object trống (ES6)
 function Validator(formSelector) {
     // console.log(formSelector);
+    var _this = this;
 
+    // Chuyển đổi thành dạng Object chứa tất cả các rules cho việc validation trong form
+    // Mong muốn trong Object  ó chứa như này:
+    // có key = tên của attribute 'name' và value = giá trị của attribute 'rule'
+    // fullname: 'required',
+    // email: 'required|email'
+    var formRules = {}; 
 
     // Func này nhầm mục đích từ thẻ input => chọc ra thẻ cha chứa nó => lấy ra element cần select
     function getParent(element, selector){
@@ -17,13 +25,6 @@ function Validator(formSelector) {
             element = element.parentElement;
         }
     }
-
-    // Chuyển đổi thành dạng Object chứa tất cả các rules cho việc validation trong form
-    // Mong muốn trong Object  ó chứa như này:
-    // có key = tên của attribute 'name' và value = giá trị của attribute 'rule'
-    // fullname: 'required',
-    // email: 'required|email'
-    var formRules = {}; 
 
 
     /**
@@ -135,10 +136,12 @@ function Validator(formSelector) {
             // Trong vòng for mình đã lướt qua các thẻ input rồi, thì bây giờ mình lắng nghe để validate (vd: onblur, onchange, ...)
             // Khi input dc blur thì gán cho nó func 'handleValidate'
             input.onblur = handleValidate;   
+            // Lắng nghe sự kiện khi User nhập value vào field thì thông báo lỗi trước đó mất đi
+            input.oninput = handleClearError;
         }
 
 
-        // Viết func 'handleValidate' ngoài đây, để thực hiện validate
+        // Viết function 'handleValidate' ngoài đây, để thực hiện validate
         function handleValidate(e) {
             // console.log(e);
             // Từ event lấy ra element thì .target
@@ -156,12 +159,13 @@ function Validator(formSelector) {
             var errorMessage;
 
 
-            rules.find(function (rule) {
+            for(var rule of rules) {
                 // tham số rule nhận vào là các rule (required, email, min/max), nên rule nào cũng nhận vào value
                 // Khi field nào có error thì nó sẽ gán cho errorMessage luôn và return ra error message
                 errorMessage = rule(e.target.value);
-                return errorMessage;
-            });
+                // Check nếu có 'errorMessage' thì break khỏi vòng for
+                if (errorMessage) break;
+            }
 
             // some sẽ chạy và nó tìm nếu có errorMessage thì nó sẽ dừng luôn vòng lặp và trả về error message cho mình (tab console)
             // console.log(errorMessage);
@@ -175,6 +179,9 @@ function Validator(formSelector) {
 
                 // Check nếu có formGroup (thẻ cha của input dc User blur) thì:
                 if(formGroup) {
+                    // Add class 'invalid' vào để message có màu đỏ
+                    formGroup.classList.add('invalid');
+
                     // Chọc vào thẻ chứa thông báo lỗi chứa class 'form-message'
                     var formMessage = formGroup.querySelector('.form-message');
                     if(formMessage) {
@@ -183,12 +190,124 @@ function Validator(formSelector) {
                 }
             }
 
-
+            // Trong trường hơp Validate thành công (User nhập đúng hết) thì sẽ trả về 'true' (boolean)
+            return !errorMessage;
 
         }
 
-        // Ta đã nhận dc Object chứa các key là 'name' của input và tương ứng các value là các 'rules' của tất cả các thẻ input
-        // console.log(formRules);
+        // Viết function 'handleClearError' ngoài đây, để thực hiện việc clear thông báo lỗi trước đó khi User nhập vào input
+        function handleClearError(e) {
+            // Lấy ra '.form-group'
+            var formGroup = getParent(e.target, '.form-group');
 
+            // Check xem 'formGroup' có class 'invalid' hay ko, nếu có thì remove class 'invalid' đi
+            if (formGroup.classList.contains('invalid')) {
+                // Cho mất màu đỏ của dòng thông báo và đường viền của ô input, vì class 'invalid' là đặt ở class cha chứa label, ô input, và thẻ span báo lỗi, và ta đã css cho class invalid khi thêm vào thẻ cha 'form-group' thì viền của ô input và error massage sẽ chuyển thành màu đỏ
+                formGroup.classList.remove('invalid');
+
+                // Chọc vào thẻ chứa thông báo lỗi chứa class 'form-message'
+                var formMessage = formGroup.querySelector('.form-message');
+                if(formMessage) {
+                    // Set lại là chuỗi rỗng cho nó mất error massage đi
+                    formMessage.innerText = '';
+                }
+            }
+
+        }
+       
     }
+
+    // Xữ lý hành vi Submit form
+    formElement.onsubmit = function(e) {
+        // Bỏ qua hành vi submit mặc định
+        e.preventDefault();
+
+        // Nhấn submit nó sẽ in ra this bên ngoài (this là hàm Validator) có func onSubmit
+        // console.log(_this);
+
+        
+        var inputs = formElement.querySelectorAll('[name][rules]');
+        // 'isValid' là form hợp lệ, mặc định lần đầu 'true' (user chưa nhập hay làm gì form hết)
+        var isValid = true;
+
+        for(var input of inputs) {
+            // console.log(input);
+            // Lấy ra value của 3 ô input mà user nhập vào
+            // console.log(input.value);
+            // Lấy ra 'name' của 3 ô input
+            // console.log(input.name);
+
+            // Chạy func handleValidate và truyền vào Object chứa tất cả Element input của ta lặp qua
+            // '!handleValidate({target: input})' (ko hợp lệ)
+            // Check nếu nó ko hợp lệ
+            if (!handleValidate({target: input})) {
+                // Gán isValid = false
+                // Khi User nhập đúng điều kiện của tất cả ô input có validate thì nó sẽ trả về true, còn ko thỏa validate thì trả về false
+                isValid = false;
+            }      
+        }
+        // console.log(isValid);
+
+
+        // Khi ko có lỗi thì Submit form
+        if (isValid) {
+            // Nếu có function onSubmit thì gọi onSubmit()
+            if(typeof _this.onSubmit === 'function') {
+                // Lấy tất cả inputs ở trang thái enable
+                // Select tất cả những thẻ có attribute là 'name' và ko có attribue là disabled
+                // Tại sao lại ko lấy những field có attribute là 'disabled' vì trong thực tế sẽ có những field ta thêm vào attribute 'disable' để User ko tương tác dc
+                // Nhưng đa phần các trường hợp là chỉ lấy attribute 'name', ko cần not([disabled])      ([name]:not([disabled]))
+                var enableInputs =  formElement.querySelectorAll('[name]');
+                // console.log(enableInputs)
+
+                // 'enableInputs' đang là dạng NodeList chứa tất cả thẻ input mà nó lấy dc, nên ko sử dụng dc các methhod của Array, nên ta convert nó sang Array để dùng
+                // Ta nhận vào tất cả value của ta, các inputElement
+                var formValues = Array.from(enableInputs).reduce(function(values, input) {
+                // Gán input.value cho Object 'values' và return ra 'values'
+                // Vì nếu sau này ta có 1 field ko bắt buộc nhập thì ta ko nhập nó vẫn gán những giá trị của các field khác và trả về 1 Object, còn field ko bắt buộc mà nếu User ko nhập field ko bắt buộc thì nó trả về chuỗi rỗng. Ta ko viết như lúc trước là  'return (values[input.name] = input.value) && values' vì nếu viết như vậy thì nếu field ko bắt buộc mà User ko nhập vào thì nó trả về cả Object là chuỗi rỗng
+                
+                switch(input.type) {
+                    case 'radio':
+                        values[input.name] = formElement.querySelector('input[name="' + input.name + '"]:checked').value;
+                        break;
+                    case 'checkbox':
+                        // Nếu nó là checkbox ko dc check thì nó sẽ gán cho values là 1 chuổi rỗng và return ra chuỗi rỗng này, nó tương tự return values dưới switch nhưng chỉ là return sớm hơn, khi if này dc return thì ko chạy tới đoạn bên dưới nữa
+                        // Nhưng nếu nó dc check thì nó sẽ push value của input vào Array của mình 
+                        if(!input.matches(':checked')) {
+                            values[input.name] = '';
+                            return values;
+                        }
+
+                        // Nếu nó ko phải là Array thì sẽ gán cho nó = Array trống
+                        if(!Array.isArray(values[input.name])) {
+                            values[input.name] = [];
+                        }
+
+                        values[input.name].push(input.value);
+
+                        break;
+
+                    case 'file':
+                        values[input.name] = input.files;
+                        break;
+                    default:
+                        values[input.name] = input.value;
+                }
+
+                return values;
+                }, {});
+
+                // Gọi hàm onSubmit và trả về tất cả giá trị của những thẻ input trong form (formValues)
+                _this.onSubmit(formValues);
+            }
+            // Nếu bên file html ở tham số 'options' mà ko có thằng onSubmit thì submit hành vi mặc định
+            else{
+                formElement.submit();
+            }
+
+        }
+    }
+
+    // Ta đã nhận dc Object chứa các key là 'name' của input và tương ứng các value là các 'rules' của tất cả các thẻ input
+    // console.log(formRules);
 }
